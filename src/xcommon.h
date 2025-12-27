@@ -25,6 +25,8 @@ typedef double f64;
 typedef i8 bool;
 typedef u8 byte;
 
+#define XL_ANY void*
+
 #define XL_TRUE 1
 #define XL_FALSE 0
 #define XL_OK 0
