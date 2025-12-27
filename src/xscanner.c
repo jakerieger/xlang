@@ -20,7 +20,7 @@ static bool is_alnum(char c) {
 
 static char advance(xl_scanner* scanner) {
     if (scanner->pos + 1 > scanner->source_len) {
-        xl_perror("tried to advance past source length (%lu > %lu)\n", scanner->pos + 1, scanner->source_len);
+        xl_error("tried to advance past source length (%lu > %lu)\n", scanner->pos + 1, scanner->source_len);
         return INVALID_CHAR;
     }
 
@@ -29,7 +29,7 @@ static char advance(xl_scanner* scanner) {
 
 static char peek(xl_scanner* scanner) {
     if (scanner->pos + 1 > scanner->source_len) {
-        xl_perror("tried to advance past source length (%lu > %lu)\n", scanner->pos + 1, scanner->source_len);
+        xl_error("tried to advance past source length (%lu > %lu)\n", scanner->pos + 1, scanner->source_len);
         return INVALID_CHAR;
     }
 
@@ -47,7 +47,7 @@ static void advance_pos(xl_scanner* scanner) {
 xl_scanner* xl_scanner_create(xl_allocator* alloc, const char* input) {
     xl_scanner* out = (xl_scanner*)xl_alloc_push(alloc, sizeof(xl_scanner), XL_FALSE);
     if (!out) {
-        xl_perror("failed to allocate scanner");
+        xl_error("failed to allocate scanner");
         return NULL;
     }
 
@@ -56,7 +56,7 @@ xl_scanner* xl_scanner_create(xl_allocator* alloc, const char* input) {
     strncpy(out->source, input, input_len);
 
     if (!out->source) {
-        xl_perror("failed to copy source to scanner");
+        xl_error("failed to copy source to scanner");
         return NULL;
     }
 
@@ -81,7 +81,7 @@ static bool make_string_token(xl_allocator* alloc, const char* val, xl_token_typ
     u32 buf_len        = val_len + 1;  // + null term
     token_out->value.s = (char*)xl_alloc_push(alloc, buf_len, XL_FALSE);
     if (!token_out->value.s) {
-        xl_perror("failed to allocate token string memory");
+        xl_error("failed to allocate token string memory");
         return XL_FALSE;
     }
     strncpy(token_out->value.s, val, buf_len);
@@ -117,7 +117,7 @@ static xl_token parse_number(xl_scanner* scanner) {
         }
 
         if ((size_t)buffer_pos >= MAX_DIGIT_COUNT) {
-            xl_perror("number contains too many digits (max 64)");
+            xl_error("number contains too many digits (max 64)");
             return MAKE_ERR_TOKEN;
         }
 
@@ -147,7 +147,7 @@ static xl_token parse_identifier(xl_scanner* scanner) {
         }
 
         if ((size_t)buffer_pos >= MAX_DIGIT_COUNT) {
-            xl_perror("number contains too many digits (max 64)");
+            xl_error("number contains too many digits (max 64)");
             return MAKE_ERR_TOKEN;
         }
 
@@ -159,7 +159,7 @@ static xl_token parse_identifier(xl_scanner* scanner) {
     xl_token_type type = is_keyword(buffer) ? TOKEN_KEYWORD : TOKEN_IDENTIFIER;
     bool result        = make_string_token(scanner->alloc, buffer, type, &out);
     if (!result) {
-        xl_perror("failed to create string token");
+        xl_error("failed to create string token");
         return MAKE_ERR_TOKEN;
     }
 
@@ -241,7 +241,7 @@ bool xl_scanner_emit(xl_scanner* scanner, xl_token* token_out) {
             }
         https:  // github.com/jakerieger/XEN/tree/master/Core/Interfaces
 
-            xl_perror("invalid token: '%c' (%d)\n", c, (i32)c);
+            xl_error("invalid token: '%c' (%d)\n", c, (i32)c);
             return XL_FALSE;
         }
     }

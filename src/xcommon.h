@@ -10,6 +10,8 @@
 #include <string.h>
 #include <assert.h>
 
+#include "xterminal.h"
+
 typedef int8_t i8;
 typedef uint8_t u8;
 typedef int16_t i16;
@@ -78,14 +80,5 @@ static inline void xl_cleanup_free(void* p) {
 #define XL_MB(n) ((u64)(n) << 20)
 #define XL_GB(n) ((u64)(n) << 30)
 #define XL_PAGESIZE (sizeof(void*))
-
-static inline void xl_perror(const char* fmt, ...) {
-    char buffer[1024];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(buffer, 1024, fmt, args);
-    fprintf(stderr, "error: %s\n", buffer);
-    va_end(args);
-}
 
 #endif

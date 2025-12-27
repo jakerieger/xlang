@@ -2,7 +2,6 @@
 #define X_ALLOC_H
 
 #include "xcommon.h"
-#include <stdlib.h>
 
 /*
  * Implements a simple arena alloctor for general-purpose

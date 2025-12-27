@@ -3,7 +3,7 @@
 xl_allocator* xl_alloc_create(u64 capacity) {
     xl_allocator* out = (xl_allocator*)malloc(capacity);
     if (!out) {
-        xl_perror("failed to allocate memory for xl_allocator");
+        xl_error("failed to allocate memory for xl_allocator");
         return NULL;
     }
 
@@ -22,9 +22,9 @@ void* xl_alloc_push(xl_allocator* alloc, u64 size, bool non_zero) {
     u64 new_pos     = pos_aligned + size;
 
     if (new_pos > alloc->cap) {
-        xl_perror("attempted to allocate unavailable memory (capacity: %lu bytes, attempted: %lu bytes)",
-                  alloc->cap,
-                  new_pos);
+        xl_error("attempted to allocate unavailable memory (capacity: %lu bytes, attempted: %lu bytes)",
+                 alloc->cap,
+                 new_pos);
         return NULL;
     }
 
