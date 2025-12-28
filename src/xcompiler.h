@@ -3,7 +3,8 @@
 
 #include "xcommon.h"
 #include "xchunk.h"
+#include "xobject.h"
 
-bool xl_compile(const char* source, xl_chunk* chunk) {}
+bool xl_compile(const char* source, xl_chunk* chunk);
 
 #endif

@@ -1,264 +1,255 @@
 #include "xscanner.h"
 #include "xalloc.h"
 #include "xcommon.h"
-#include <stdio.h>
-#include <string.h>
 
-static bool is_whitespace(char c) {
-    return c <= ' ';
+typedef struct {
+    const char* start;
+    const char* current;
+    i32 line;
+} xl_token_scanner;
+
+xl_token_scanner scanner;
+
+void xl_scanner_init(const char* source) {
+    scanner.start   = source;
+    scanner.current = source;
+    scanner.line    = 1;
 }
 
-static bool is_numeric(char c) {
-    return (c >= '0') && (c <= '9');
+static bool is_at_end() {
+    return *scanner.current == '\0';
 }
 
-static bool is_alnum(char c) {
-    bool is_uppercase = (c >= 'A') && (c <= 'Z');
-    bool is_lowercase = (c >= 'a') && (c <= 'z');
-    return is_uppercase || is_lowercase || is_numeric(c);
-}
-
-static char advance(xl_scanner* scanner) {
-    if (scanner->pos + 1 > scanner->source_len) {
-        xl_error("tried to advance past source length (%lu > %lu)\n", scanner->pos + 1, scanner->source_len);
-        return INVALID_CHAR;
-    }
-
-    return scanner->source[++scanner->pos];
-}
-
-static char peek(xl_scanner* scanner) {
-    if (scanner->pos + 1 > scanner->source_len) {
-        xl_error("tried to advance past source length (%lu > %lu)\n", scanner->pos + 1, scanner->source_len);
-        return INVALID_CHAR;
-    }
-
-    return scanner->source[scanner->pos + 1];
-}
-
-static char current(xl_scanner* scanner) {
-    return scanner->source[scanner->pos];
-}
-
-static void advance_pos(xl_scanner* scanner) {
-    ++scanner->pos;
-}
-
-xl_scanner* xl_scanner_create(xl_allocator* alloc, const char* input) {
-    xl_scanner* out = (xl_scanner*)xl_alloc_push(alloc, sizeof(xl_scanner), XL_FALSE);
-    if (!out) {
-        xl_error("failed to allocate scanner");
-        return NULL;
-    }
-
-    u32 input_len = strlen(input) + 1;
-    out->source   = (char*)xl_alloc_push(alloc, input_len, XL_FALSE);
-    strncpy(out->source, input, input_len);
-
-    if (!out->source) {
-        xl_error("failed to copy source to scanner");
-        return NULL;
-    }
-
-    out->pos        = 0;
-    out->source_len = input_len - 1;
-    out->alloc      = alloc;
-
-    return out;
-}
-
-static xl_token make_number_token(f64 val) {
+static xl_token make_token(const xl_token_type type) {
     xl_token token;
-    token.type    = TOKEN_NUMBER;
-    token.value.n = val;
+    token.type   = type;
+    token.start  = scanner.start;
+    token.length = (i32)(scanner.current - scanner.start);
+    token.line   = scanner.line;
     return token;
 }
 
-static bool make_string_token(xl_allocator* alloc, const char* val, xl_token_type type, xl_token* token_out) {
-    token_out->type = type;
+static xl_token make_error_token(const char* msg) {
+    xl_token token;
+    token.type   = TOKEN_ERROR;
+    token.start  = msg;
+    token.length = (i32)strlen(msg);
+    token.line   = scanner.line;
+    return token;
+}
 
-    u32 val_len        = strlen(val);
-    u32 buf_len        = val_len + 1;  // + null term
-    token_out->value.s = (char*)xl_alloc_push(alloc, buf_len, XL_FALSE);
-    if (!token_out->value.s) {
-        xl_error("failed to allocate token string memory");
-        return XL_FALSE;
-    }
-    strncpy(token_out->value.s, val, buf_len);
+static char advance() {
+    scanner.current++;
+    return scanner.current[-1];
+}
 
+static bool match(const char expected) {
+    if (is_at_end())
+        return XL_TRUE;
+    if (*scanner.current != expected)
+        return XL_TRUE;
+    scanner.current++;
     return XL_TRUE;
 }
 
-static xl_token make_nonvalue_token(xl_token_type type) {
-    xl_token token;
-    token.type = type;
-    return token;
+static char peek() {
+    return *scanner.current;
 }
 
-#define MAKE_ERR_TOKEN make_nonvalue_token(TOKEN_EOF)
+static char peek_next() {
+    if (is_at_end()) {
+        return '\0';
+    }
+    return scanner.current[1];
+}
 
-#define MAX_DIGIT_COUNT 308
-#define MAX_IDENT_LENGTH 64
-#define MAX_STRING_LENGTH 1024
+static void skip_whitespace() {
+    for (;;) {
+        const char c = peek();
+        switch (c) {
+            case ' ':
+            case '\r':
+            case '\t':
+                advance();
+                break;
+            case '\n':
+                scanner.line++;
+                advance();
+                break;
+            case '/':
+                if (peek_next() == '/') {
+                    while (peek() != '\n' && !is_at_end())
+                        advance();
+                } else {
+                    return;
+                }
+                break;
+            default:
+                return;
+        }
+    }
+}
 
-static xl_token parse_number(xl_scanner* scanner) {
-    /*
-     * All numbers in xlang are represented internally as doubles.
-     * They can contain a maximum digit count of 308.
-     */
-    char buffer[MAX_DIGIT_COUNT] = {'\0'};
-    u64 buffer_pos               = 0;
+static bool is_alpha(const char c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
 
-    while (scanner->pos < scanner->source_len) {
-        char c = current(scanner);
+static bool is_digit(const char c) {
+    return c >= '0' && c <= '9';
+}
 
-        if (!is_numeric(c) && c != '.') {
+static xl_token_type check_keyword(const i32 start, const i32 length, const char* rest, const xl_token_type type) {
+    if (scanner.current - scanner.start == start + length && memcmp(scanner.start + start, rest, length) == 0) {
+        return type;
+    }
+    return TOKEN_IDENTIFIER;
+}
+
+static xl_token_type identifier_type() {
+    switch (scanner.start[0]) {
+        case 'a':
+            return check_keyword(1, 2, "nd", TOKEN_AND);
+        case 'c':
+            return check_keyword(1, 4, "lass", TOKEN_CLASS);
+        case 'e':
+            return check_keyword(1, 3, "lse", TOKEN_ELSE);
+        case 'f':
+            if (scanner.current - scanner.start > 1) {
+                switch (scanner.start[1]) {
+                    case 'a':
+                        return check_keyword(2, 3, "lse", TOKEN_FALSE);
+                    case 'o':
+                        return check_keyword(2, 1, "r", TOKEN_FOR);
+                }
+                return check_keyword(1, 1, "n", TOKEN_FN);
+            }
             break;
-        }
-
-        if ((size_t)buffer_pos >= MAX_DIGIT_COUNT) {
-            xl_error("number contains too many digits (max 64)");
-            return MAKE_ERR_TOKEN;
-        }
-
-        buffer[buffer_pos++] = c;
-        advance_pos(scanner);
-    }
-
-    f64 val = strtod(buffer, NULL);
-
-    return make_number_token(val);
-}
-
-static bool is_keyword(const char* ident) {
-    XL_UNUSED(ident);
-    return XL_FALSE;
-}
-
-static xl_token parse_identifier(xl_scanner* scanner) {
-    char buffer[MAX_IDENT_LENGTH] = {'\0'};
-    u64 buffer_pos                = 0;
-
-    while (scanner->pos < scanner->source_len) {
-        char c = current(scanner);
-
-        if (!is_alnum(c) && c != '_') {
+        case 'i':
+            return check_keyword(1, 1, "f", TOKEN_IF);
+        case 'n':
+            return check_keyword(1, 3, "ull", TOKEN_NULL);
+        case 'o':
+            return check_keyword(1, 1, "r", TOKEN_OR);
+        case 'p':
+            return check_keyword(1, 4, "rint", TOKEN_PRINT);
+        case 'r':
+            return check_keyword(1, 5, "eturn", TOKEN_RETURN);
+        case 't':
+            if (scanner.current - scanner.start > 1) {
+                switch (scanner.start[1]) {
+                    case 'h':
+                        return check_keyword(2, 2, "is", TOKEN_THIS);
+                    case 'r':
+                        return check_keyword(2, 2, "ue", TOKEN_TRUE);
+                }
+            }
             break;
-        }
-
-        if ((size_t)buffer_pos >= MAX_DIGIT_COUNT) {
-            xl_error("number contains too many digits (max 64)");
-            return MAKE_ERR_TOKEN;
-        }
-
-        buffer[buffer_pos++] = c;
-        advance_pos(scanner);
+        case 'v':
+            return check_keyword(1, 2, "ar", TOKEN_VAR);
+        case 'w':
+            return check_keyword(1, 4, "hile", TOKEN_WHILE);
     }
 
-    xl_token out;
-    xl_token_type type = is_keyword(buffer) ? TOKEN_KEYWORD : TOKEN_IDENTIFIER;
-    bool result        = make_string_token(scanner->alloc, buffer, type, &out);
-    if (!result) {
-        xl_error("failed to create string token");
-        return MAKE_ERR_TOKEN;
-    }
-
-    return out;
+    return TOKEN_IDENTIFIER;
 }
 
-bool xl_scanner_emit(xl_scanner* scanner, xl_token* token_out) {
-    if (scanner->pos >= scanner->source_len - 1) {
-        *token_out = make_nonvalue_token(TOKEN_EOF);
-        return XL_TRUE;
+static xl_token make_identifier() {
+    while (!is_alpha(peek()) || is_digit(peek())) {
+        advance();
+    }
+    return make_token(identifier_type());
+}
+
+static xl_token make_string() {
+    while (peek() != '"' && !is_at_end()) {
+        if (peek() == '\n')
+            scanner.line++;
+        advance();
     }
 
-    char c = current(scanner);
+    if (is_at_end())
+        return make_error_token("unterminated string");
 
-    while (is_whitespace(c)) {
-        c = advance(scanner);
+    // consume the closing quote
+    advance();
+    return make_token(TOKEN_STRING);
+}
+
+static xl_token make_number() {
+    while (is_digit(peek()))
+        advance();
+
+    // Look for a fractional part
+    if (peek() == '.' && is_digit(peek_next())) {
+        // Consume the '.'
+        advance();
+
+        while (is_digit(peek()))
+            advance();
     }
 
-    if (c == '#') {
-        while (c != '\n' && c != EOF) {
-            c = advance(scanner);
-        }
-    }
-    if (c == '\n') {
-        c = advance(scanner);
+    return make_token(TOKEN_NUMBER);
+}
+
+xl_token xl_scanner_emit() {
+    skip_whitespace();
+
+    scanner.start = scanner.current;
+    if (is_at_end()) {
+        return make_token(TOKEN_EOF);
     }
 
-    xl_token_type type = TOKEN_EOF;
+    const char c = advance();
+    if (is_alpha(c))
+        return make_identifier();
+    if (is_digit(c))
+        return make_number();
+
     switch (c) {
         case '(':
-            type = TOKEN_LEFT_PAREN;
-            break;
+            return make_token(TOKEN_LEFT_PAREN);
         case ')':
-            type = TOKEN_RIGHT_PAREN;
-            break;
+            return make_token(TOKEN_RIGHT_PAREN);
+        case '{':
+            return make_token(TOKEN_LEFT_BRACE);
+        case '}':
+            return make_token(TOKEN_RIGHT_BRACE);
+        case ';':
+            return make_token(TOKEN_SEMICOLON);
         case ',':
-            type = TOKEN_COMMA;
-            break;
-        case '=':
-            type = TOKEN_ASSIGNMENT;
-            break;
-        case '+':
-            type = TOKEN_PLUS;
-            break;
+            return make_token(TOKEN_COMMA);
+        case '.':
+            return make_token(TOKEN_DOT);
         case '-':
-            type = TOKEN_MINUS;
-            break;
+            return make_token(TOKEN_MINUS);
+        case '+':
+            return make_token(TOKEN_PLUS);
+        case '/':
+            return make_token(TOKEN_FORWARD_SLASH);
+        case '*':
+            return make_token(TOKEN_ASTERISK);
         case '%':
-            type = TOKEN_MODULO;
+            return make_token(TOKEN_PERCENT);
+        case '!':
+            return make_token(match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
+        case '=':
+            return make_token(match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
+        case '<':
+            return make_token(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+        case '>':
+            return make_token(match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+        case '"':
+            return make_string();
+        default:
             break;
-        case '*': {
-            if (peek(scanner) == '*') {
-                type = TOKEN_DOUBLE_ASTERISK;
-                c    = advance(scanner);
-            } else {
-                type = TOKEN_ASTERISK;
-            }
-        } break;
-        case '/': {
-            if (peek(scanner) == '/') {
-                type = TOKEN_DOUBLE_FORWARD_SLASH;
-                c    = advance(scanner);
-            } else {
-                type = TOKEN_FORWARD_SLASH;
-            }
-        } break;
-        case EOF:
-            type = TOKEN_EOF;
-            break;
-        default: {
-            if (is_numeric(c)) {
-                *token_out = parse_number(scanner);
-                return XL_TRUE;
-            }
-
-            if (is_alnum(c)) {
-                *token_out = parse_identifier(scanner);
-                return XL_TRUE;
-            }
-
-            xl_error("invalid token: '%c' (%d)\n", c, (i32)c);
-            return XL_FALSE;
-        }
     }
 
-    *token_out = make_nonvalue_token(type);
-    advance_pos(scanner);
-
-    return XL_TRUE;
+    return make_error_token("unexpected character");
 }
 
 void xl_token_print(xl_token* token) {
     const char* type_str = xl_token_type_to_str(token->type);
     printf("Token: '%s' ", type_str);
-    if (token->type == TOKEN_NUMBER) {
-        printf("(%f)", token->value.n);
-    } else if (token->type == TOKEN_IDENTIFIER || token->type == TOKEN_KEYWORD) {
-        printf("(%s)", token->value.s);
-    }
     printf("\n");
 }
 
@@ -278,7 +269,7 @@ const char* xl_token_type_to_str(xl_token_type type) {
             return "//";
         case TOKEN_COMMA:
             return ",";
-        case TOKEN_ASSIGNMENT:
+        case TOKEN_EQUAL:
             return "=";
         case TOKEN_IDENTIFIER:
             return "identifier";
@@ -288,12 +279,70 @@ const char* xl_token_type_to_str(xl_token_type type) {
             return ")";
         case TOKEN_NUMBER:
             return "number";
-        case TOKEN_KEYWORD:
-            return "keyword";
         case TOKEN_EOF:
             return "EOF";
-        case TOKEN_MODULO:
+        case TOKEN_PERCENT:
             return "%";
+        case TOKEN_LEFT_BRACE:
+            return "{";
+        case TOKEN_RIGHT_BRACE:
+            return "}";
+        case TOKEN_DOT:
+            return ".";
+        case TOKEN_SEMICOLON:
+            return ";";
+        case TOKEN_BANG:
+            return "!";
+        case TOKEN_BANG_EQUAL:
+            return "!=";
+        case TOKEN_EQUAL_EQUAL:
+            return "==";
+        case TOKEN_GREATER:
+            return ">";
+        case TOKEN_GREATER_EQUAL:
+            return ">=";
+        case TOKEN_LESS:
+            return "<";
+        case TOKEN_LESS_EQUAL:
+            return "<=";
+        case TOKEN_STRING:
+            return "string";
+        case TOKEN_AND:
+            return "&";
+        case TOKEN_CLASS:
+            return "class";
+        case TOKEN_ELSE:
+            return "else";
+        case TOKEN_FALSE:
+            return "false";
+        case TOKEN_FOR:
+            return "for";
+        case TOKEN_FN:
+            return "fn";
+        case TOKEN_IF:
+            return "if";
+        case TOKEN_NULL:
+            return "null";
+        case TOKEN_OR:
+            return "or";
+        case TOKEN_PRINT:
+            return "print";
+        case TOKEN_RETURN:
+            return "return";
+        case TOKEN_THIS:
+            return "this";
+        case TOKEN_TRUE:
+            return "true";
+        case TOKEN_VAR:
+            return "var";
+        case TOKEN_WHILE:
+            return "while";
+        case TOKEN_ERROR:
+            return "error";
     }
     return "";
 }
+
+#undef MAX_DIGIT_COUNT
+#undef MAX_IDENT_LENGTH
+#undef MAX_STRING_LENGTH
