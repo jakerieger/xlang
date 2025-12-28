@@ -25,4 +25,31 @@ inline static char* xl_read_file(const char* filename) {
     return buffer;
 }
 
+/// @brief Returns the corresponding order of magnitude suffix for the given
+/// byte size (Kilobytes, Megabytes, Gigabytes, etc.) and the scaled
+/// value to match
+inline static char* xl_bytes_order_of_magnitude(size_t size, size_t* scaled_out) {
+    if (size < XL_KB(1)) {
+        *scaled_out = size;
+        return "bytes";
+    }
+
+    else if (size < XL_MB(1)) {
+        *scaled_out = size / XL_KB(1);
+        return "Kb";
+    }
+
+    else if (size < XL_GB(1)) {
+        *scaled_out = size / XL_MB(1);
+        return "Mb";
+    }
+
+    else if (XL_UNLIKELY(size < ((u64)size << 40))) {
+        *scaled_out = size / XL_GB(1);
+        return "Gb";
+    }
+
+    return NULL;
+}
+
 #endif

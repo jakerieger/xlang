@@ -24,7 +24,7 @@ typedef enum {
 
 extern xl_vm vm;
 
-void xl_vm_init();
+void xl_vm_init(xl_vm_config config);
 void xl_vm_shutdown();
 xl_exec_result xl_vm_exec(const char* source);
 

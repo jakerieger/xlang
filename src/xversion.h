@@ -7,13 +7,15 @@
 #define VERSION_STRING "0.1.0"
 
 #ifdef __linux
-    #define VERSION_STRING_FULL VERSION_STRING "-linux-x64"
+    #define PLATFORM_STRING "linux-x64"
 #elif _WIN32
-    #define VERSION_STRING_FULL VERSION_STRING "-windows-x64"
+    #define PLATFORM_STRING "windows-x64"
 #elif __APPLE__
-    #define VERSION_STRING_FULL VERSION_STRING "-macos-x64"
+    #define PLATFORM_STRING "macos-x64"
 #else
     #error "xlang is not supported on this platform"
 #endif
+
+#define VERSION_STRING_FULL VERSION_STRING "-" PLATFORM_STRING
 
 #endif

@@ -9,7 +9,7 @@ typedef struct {
     xl_allocator* temporary;   // Expression evaluation, stack frames
 } xl_vm_mem;
 
-void xl_vm_mem_init(xl_vm_mem* mem);
+void xl_vm_mem_init(xl_vm_mem* mem, size_t size_perm, size_t size_gen, size_t size_temp);
 void xl_vm_mem_destroy(xl_vm_mem* mem);
 
 #endif

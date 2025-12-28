@@ -3,6 +3,7 @@
 #include "xutils.h"
 #include "xvm.h"
 #include "xversion.h"
+#include "xvm_config.h"
 #include <string.h>
 
 #define MAX_LINE_SIZE 1024
@@ -50,7 +51,26 @@ static void print_help() {
 }
 
 static void print_version() {
-    printf("version " VERSION_STRING_FULL "\n");
+    printf("version  : " VERSION_STRING "\n");
+    printf("platform : " PLATFORM_STRING "\n");
+}
+
+static void print_vm_config(const xl_vm_config* config) {
+    size_t p_scaled;
+    size_t g_scaled;
+    size_t t_scaled;
+    size_t stack_scaled;
+
+    const char* p_oom     = xl_bytes_order_of_magnitude(config->mem_size_permanent, &p_scaled);
+    const char* g_oom     = xl_bytes_order_of_magnitude(config->mem_size_generation, &g_scaled);
+    const char* t_oom     = xl_bytes_order_of_magnitude(config->mem_size_temporary, &t_scaled);
+    const char* stack_oom = xl_bytes_order_of_magnitude(config->stack_size, &stack_scaled);
+
+    printf("=== VM Configuration ===\n");
+    printf("Memory (Perm) : %lu %s\n", p_scaled, p_oom);
+    printf("Memory (Gen)  : %lu %s\n", g_scaled, g_oom);
+    printf("Memory (Temp) : %lu %s\n", t_scaled, t_oom);
+    printf("Stack Size    : %lu %s\n", stack_scaled, stack_oom);
 }
 
 static int execute_file(const char* filename) {
@@ -77,7 +97,13 @@ static int execute_file(const char* filename) {
 }
 
 int main(int argc, char* argv[]) {
-    xl_vm_init();
+    xl_vm_config config;
+    config.mem_size_permanent  = XL_MB(64);
+    config.mem_size_generation = XL_MB(64);
+    config.mem_size_temporary  = XL_MB(4);
+    config.stack_size          = XL_KB(1);
+
+    xl_vm_init(config);
 
     if (argc < 2) {
         repl();
@@ -93,6 +119,11 @@ int main(int argc, char* argv[]) {
 
     if (strcmp(input, "--version") == 0 || strcmp(input, "-v") == 0) {
         print_version();
+        return XL_OK;
+    }
+
+    if (strcmp(input, "--vm-config") == 0) {
+        print_vm_config(&config);
         return XL_OK;
     }
 
