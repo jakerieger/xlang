@@ -6,9 +6,10 @@
 #include "xstack.h"
 #include "xobject.h"
 #include "xtable.h"
+#include "xmem.h"
 
 typedef struct {
-    xl_allocator* alloc;
+    xl_vm_mem mem;
     u8* ip;  // instruction ptr
     xl_stack* stack;
     xl_table strings;
@@ -23,7 +24,8 @@ typedef enum {
 
 extern xl_vm vm;
 
-void xl_vm_init(xl_allocator* alloc);
+void xl_vm_init();
+void xl_vm_shutdown();
 xl_exec_result xl_vm_exec(const char* source);
 
 #endif

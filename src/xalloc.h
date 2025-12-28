@@ -5,8 +5,7 @@
 
 /*
  * Implements a simple arena alloctor for general-purpose
- * allocations. Typically one instance is created in the
- * application root and used globally
+ * allocations.
  */
 
 #define XL_ALLOC_POS (sizeof(xl_allocator))

@@ -40,7 +40,7 @@
 inline static int xl_error(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    printf(COLOR_BOLD COLOR_RED "✗ " COLOR_RESET COLOR_RED);
+    printf(COLOR_BOLD COLOR_RED "error: " COLOR_RESET COLOR_RED);
     vprintf(fmt, args);
     printf(COLOR_RESET "\n");
     va_end(args);
