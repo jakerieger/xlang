@@ -239,7 +239,6 @@ bool xl_scanner_emit(xl_scanner* scanner, xl_token* token_out) {
                 *token_out = parse_identifier(scanner);
                 return XL_TRUE;
             }
-        https:  // github.com/jakerieger/XEN/tree/master/Core/Interfaces
 
             xl_error("invalid token: '%c' (%d)\n", c, (i32)c);
             return XL_FALSE;
