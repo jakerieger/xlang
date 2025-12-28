@@ -22,4 +22,7 @@ void xl_alloc_pop(xl_allocator* alloc, u64 size);
 void xl_alloc_pop_to(xl_allocator* alloc, u64 pos);
 void xl_alloc_clear(xl_allocator* alloc);
 
+#define XL_ALLOC_ARRAY(alloc, type, count) (type*)xl_alloc_push(alloc, sizeof(type) * (count), XL_FALSE)
+#define XL_ALLOC_TYPE(alloc, type) (type*)xl_alloc_push(alloc, sizeof(type), XL_FALSE)
+
 #endif

@@ -7,11 +7,13 @@
 #include "xobject.h"
 #include "xtable.h"
 #include "xmem.h"
+#include "xchunk.h"
 
 typedef struct {
     xl_vm_mem mem;
+    xl_chunk* chunk;
     u8* ip;  // instruction ptr
-    xl_stack* stack;
+    xl_stack stack;
     xl_table strings;
     xl_obj* objects;
 } xl_vm;
@@ -27,5 +29,8 @@ extern xl_vm vm;
 void xl_vm_init(xl_vm_config config);
 void xl_vm_shutdown();
 xl_exec_result xl_vm_exec(const char* source);
+
+#define MAX_OBJECT_COUNT 9999
+#define MAX_STRINGS_COUNT 9999
 
 #endif

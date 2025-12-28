@@ -1,4 +1,5 @@
 #include "xvalue.h"
+#include "xalloc.h"
 
 bool xl_value_equal(xl_value a, xl_value b) {
     if (a.type != b.type)
@@ -18,13 +19,19 @@ bool xl_value_equal(xl_value a, xl_value b) {
     }
 }
 
-void xl_value_init_array(xl_allocator* alloc, xl_value_array* array) {
-    array->values = NULL;
-    array->cap    = 0;
+void xl_value_init_array(xl_allocator* alloc, xl_value_array* array, size_t max_capacity) {
     array->count  = 0;
+    array->cap    = max_capacity;
+    array->values = XL_ALLOC_ARRAY(alloc, xl_value, max_capacity);
 }
 
-void xl_value_write_array(xl_value_array* array, xl_value value) {}
+i32 xl_value_write_array(xl_value_array* array, xl_value value) {
+    if (array->count + 1 > array->cap) {
+        return xl_error("failed to write to array, memory full");
+    }
+    array->values[++array->count] = value;
+    return XL_OK;
+}
 
 void xl_value_print(xl_value value) {
     switch (value.type) {
