@@ -15,6 +15,7 @@ typedef struct {
     u8* ip;  // instruction ptr
     xl_stack stack;
     xl_table strings;
+    xl_table globals;
     xl_obj* objects;
 } xl_vm;
 

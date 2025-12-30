@@ -24,7 +24,7 @@ void xl_chunk_write(xl_chunk* chunk, u8 byte, u64 line) {
     chunk->count++;
 }
 
-void xl_chunk_free(xl_chunk* chunk) {
+void xl_chunk_cleanup(xl_chunk* chunk) {
     XL_FREE_ARRAY(u8, chunk->code, chunk->capacity);
     XL_FREE_ARRAY(u64, chunk->lines, chunk->capacity);
     xl_value_array_free(&chunk->constants);

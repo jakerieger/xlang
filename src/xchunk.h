@@ -32,7 +32,7 @@ typedef struct {
 
 void xl_chunk_init(xl_chunk* chunk);
 void xl_chunk_write(xl_chunk* chunk, u8 byte, u64 line);
-void xl_chunk_free(xl_chunk* chunk);
+void xl_chunk_cleanup(xl_chunk* chunk);
 i32 xl_chunk_add_constant(xl_chunk* chunk, xl_value value);
 
 #endif

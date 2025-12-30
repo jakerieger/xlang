@@ -24,9 +24,12 @@ void xl_vm_init(xl_vm_config config) {
     assert(vm.objects);
 
     xl_table_init(&vm.strings);
+    xl_table_init(&vm.globals);
 }
 
 void xl_vm_shutdown() {
+    xl_table_free(&vm.strings);
+    xl_table_free(&vm.globals);
     xl_vm_mem_destroy(&vm.mem);
 }
 
@@ -195,6 +198,8 @@ xl_exec_result xl_vm_exec(const char* source) {
     vm.ip    = vm.chunk->code;
 
     const xl_exec_result result = run();
+
+    xl_chunk_cleanup(&chunk);
     xl_alloc_clear(vm.mem.permanent);
 
     return result;
