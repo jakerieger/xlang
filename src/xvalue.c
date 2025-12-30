@@ -1,5 +1,5 @@
 #include "xvalue.h"
-#include "xalloc.h"
+#include "xmem.h"
 
 bool xl_value_equal(xl_value a, xl_value b) {
     if (a.type != b.type)
@@ -19,18 +19,26 @@ bool xl_value_equal(xl_value a, xl_value b) {
     }
 }
 
-void xl_value_init_array(xl_allocator* alloc, xl_value_array* array, size_t max_capacity) {
+void xl_value_array_init(xl_value_array* array) {
     array->count  = 0;
-    array->cap    = max_capacity;
-    array->values = XL_ALLOC_ARRAY(alloc, xl_value, max_capacity);
+    array->cap    = 0;
+    array->values = NULL;
 }
 
-i32 xl_value_write_array(xl_value_array* array, xl_value value) {
-    if (array->count + 1 > array->cap) {
-        return xl_error("failed to write to array, memory full");
+void xl_value_array_write(xl_value_array* array, xl_value value) {
+    if (array->cap < array->count + 1) {
+        const u64 old_cap = array->cap;
+        array->cap        = XL_GROW_CAPACITY(old_cap);
+        array->values     = XL_GROW_ARRAY(xl_value, array->values, old_cap, array->cap);
     }
-    array->values[++array->count] = value;
-    return XL_OK;
+
+    array->values[array->count] = value;
+    array->count++;
+}
+
+void xl_value_array_free(xl_value_array* array) {
+    XL_FREE_ARRAY(xl_value, array->values, array->cap);
+    xl_value_array_init(array);
 }
 
 void xl_value_print(xl_value value) {

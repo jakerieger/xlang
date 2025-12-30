@@ -90,10 +90,12 @@ static void skip_whitespace() {
     }
 }
 
+/// @brief [a-z] || [A-Z] || [_]
 static bool is_alpha(const char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
+/// @brief [0-9]
 static bool is_digit(const char c) {
     return c >= '0' && c <= '9';
 }
@@ -120,8 +122,9 @@ static xl_token_type identifier_type() {
                         return check_keyword(2, 3, "lse", TOKEN_FALSE);
                     case 'o':
                         return check_keyword(2, 1, "r", TOKEN_FOR);
+                    case 'n':
+                        return check_keyword(2, 0, "", TOKEN_FN);
                 }
-                return check_keyword(1, 1, "n", TOKEN_FN);
             }
             break;
         case 'i':
@@ -154,7 +157,7 @@ static xl_token_type identifier_type() {
 }
 
 static xl_token make_identifier() {
-    while (!is_alpha(peek()) || is_digit(peek())) {
+    while (is_alpha(peek()) || is_digit(peek())) {
         advance();
     }
     return make_token(identifier_type());
@@ -249,7 +252,12 @@ xl_token xl_scanner_emit() {
 
 void xl_token_print(xl_token* token) {
     const char* type_str = xl_token_type_to_str(token->type);
-    printf("Token: '%s' ", type_str);
+    printf("Token: [%s] ", type_str);
+
+    if (token->type == TOKEN_IDENTIFIER || token->type == TOKEN_STRING || token->type == TOKEN_NUMBER) {
+        printf("'%.*s'", token->length, token->start);
+    }
+
     printf("\n");
 }
 

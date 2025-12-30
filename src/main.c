@@ -1,10 +1,7 @@
-#include "xalloc.h"
-#include "xcommon.h"
-#include "xutils.h"
-#include "xvm.h"
+#include "xscanner.h"
 #include "xversion.h"
-#include "xvm_config.h"
-#include <string.h>
+#include "xvm.h"
+#include "xutils.h"
 
 #define MAX_LINE_SIZE 1024
 
@@ -31,9 +28,9 @@ static void repl() {
         xl_exec_result exec_result = xl_vm_exec(line);
         if (exec_result != EXEC_OK) {
             if (exec_result == EXEC_COMPILE_ERROR) {
-                xl_error("failed to compile input");
+                xl_error(XL_ERR_EXEC_COMPILE, "failed to compile input");
             } else if (exec_result == EXEC_RUNTIME_ERROR) {
-                xl_error("an error occurred during execution");
+                xl_error(XL_ERR_EXEC_RUNTIME, "an error occurred during execution");
             }
         }
     }
@@ -83,13 +80,10 @@ static int execute_file(const char* filename) {
     free(input);
 
     if (exec_result != EXEC_OK) {
-        switch (exec_result) {
-            case EXEC_COMPILE_ERROR:
-                return xl_error("failed to compile program");
-            case EXEC_RUNTIME_ERROR:
-                return xl_error("an error occurred during program execution");
-            default:
-                break;
+        if (exec_result == EXEC_COMPILE_ERROR) {
+            xl_error(XL_ERR_EXEC_COMPILE, "failed to compile input");
+        } else if (exec_result == EXEC_RUNTIME_ERROR) {
+            xl_error(XL_ERR_EXEC_RUNTIME, "an error occurred during execution");
         }
     }
 
@@ -110,26 +104,34 @@ int main(int argc, char* argv[]) {
         return XL_OK;
     }
 
-    char* input = argv[1];
+    char* input_file = argv[1];
 
-    if (strcmp(input, "--help") == 0 || strcmp(argv[1], "-h") == 0) {
+    if (strcmp(input_file, "--help") == 0 || strcmp(argv[1], "-h") == 0) {
         print_help();
         return XL_OK;
     }
 
-    if (strcmp(input, "--version") == 0 || strcmp(input, "-v") == 0) {
+    if (strcmp(input_file, "--version") == 0 || strcmp(input_file, "-v") == 0) {
         print_version();
         return XL_OK;
     }
 
-    if (strcmp(input, "--vm-config") == 0) {
+    if (strcmp(input_file, "--vm-config") == 0) {
         print_vm_config(&config);
         return XL_OK;
     }
 
-    int result = execute_file(input);
+    // int result = execute_file(input);
+
+    char* source = xl_read_file(input_file);
+    xl_scanner_init(source);
+    xl_token curr = xl_scanner_emit();
+    while (curr.type != TOKEN_EOF && curr.type != TOKEN_ERROR) {
+        xl_token_print(&curr);
+        curr = xl_scanner_emit();
+    }
 
     xl_vm_shutdown();
 
-    return result;
+    return XL_OK;
 }

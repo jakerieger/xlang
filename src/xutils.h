@@ -4,10 +4,11 @@
 #include "xcommon.h"
 #include "xalloc.h"
 
+/// @brief Reads a given file to a string buffer
 inline static char* xl_read_file(const char* filename) {
     FILE* fp = fopen(filename, "r");
     if (!fp) {
-        xl_error("failed to open file: %s\n", filename);
+        xl_error(XL_ERR_OPEN_FILE, "failed to open file: %s\n", filename);
         return NULL;
     }
 
@@ -50,6 +51,20 @@ inline static char* xl_bytes_order_of_magnitude(size_t size, size_t* scaled_out)
     }
 
     return NULL;
+}
+
+/// @brief Simple string hash algorithm
+inline static u32 xl_hash_string(const char* key, i32 length) {
+    const u32 MN_1 = 2166136261u;
+    const u32 MN_2 = 16777619;
+
+    u32 hash = MN_1;
+    for (i32 i = 0; i < length; i++) {
+        hash ^= (u8)key[i];
+        hash *= MN_2;
+    }
+
+    return hash;
 }
 
 #endif

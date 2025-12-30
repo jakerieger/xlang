@@ -21,7 +21,7 @@ void xl_vm_init(xl_vm_config config) {
     vm.objects = XL_ALLOC_ARRAY(vm.mem.permanent, xl_obj, MAX_OBJECT_COUNT);
     assert(vm.objects);
 
-    xl_table_init(vm.mem.permanent, &vm.strings, MAX_STRINGS_COUNT);
+    xl_table_init(&vm.strings);
 }
 
 void xl_vm_shutdown() {
@@ -44,7 +44,7 @@ static void concatenate() {
     memcpy(str, a->str, a->length);
     memcpy(str + a->length, b->str, b->length);
     str[length]           = '\0';
-    xl_obj_string* result = xl_obj_copy_string(vm.mem.permanent, str, length);
+    xl_obj_string* result = xl_obj_str_copy(str, length);
     xl_stack_push(&vm.stack, OBJ_VAL(result));
 }
 
@@ -56,8 +56,8 @@ static void runtime_error(const char* fmt, ...) {
     fputs("\n", stderr);
     const size_t instruction = vm.ip - vm.chunk->code - 1;
     const int line           = vm.chunk->lines[instruction];
-    xl_error("[line %d] in script\n", line);
     xl_stack_reset(&vm.stack);
+    xl_error(XL_ERR_EXEC_RUNTIME, "[line %d] in script\n", line);
 }
 
 #define READ_BYTE() (*vm.ip++)
@@ -94,8 +94,7 @@ static xl_exec_result run() {
         case OP_DIVIDE:
         case OP_MOD:
         default: {
-            xl_error("unknown instruction (%n)", (i32)instruction);
-            return EXEC_RUNTIME_ERROR;
+            xl_error(XL_ERR_EXEC_RUNTIME, "unknown instruction (%n)", (i32)instruction);
         }
     }
 
@@ -110,7 +109,7 @@ static xl_exec_result run() {
 
 xl_exec_result xl_vm_exec(const char* source) {
     xl_chunk chunk;
-    xl_chunk_init(vm.mem.permanent, &chunk);
+    xl_chunk_init(&chunk);
 
     if (!xl_compile(source, &chunk)) {
         xl_alloc_clear(vm.mem.permanent);

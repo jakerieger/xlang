@@ -8,7 +8,7 @@ void xl_stack_init(xl_allocator* alloc, xl_stack* stack, size_t size) {
 
 i32 xl_stack_push(xl_stack* stack, xl_value value) {
     if (stack->count + 1 > stack->cap) {
-        xl_error("failed to push to stack, maximum capacity");
+        xl_error(XL_ERR_OVER_CAPACITY, "failed to push to stack, maximum capacity");
         return XL_FAIL;
     }
 

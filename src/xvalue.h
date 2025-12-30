@@ -6,7 +6,6 @@
  */
 
 #include "xcommon.h"
-#include "xalloc.h"
 
 typedef struct xl_obj xl_obj;
 typedef struct xl_obj_string xl_obj_string;
@@ -49,8 +48,9 @@ typedef struct {
 #define OBJ_VAL(o) ((xl_value) {VAL_OBJECT, {.obj = (xl_obj*)(o)}})
 
 bool xl_value_equal(xl_value a, xl_value b);
-void xl_value_init_array(xl_allocator* alloc, xl_value_array* array, size_t max_capacity);
-i32 xl_value_write_array(xl_value_array* array, xl_value value);
+void xl_value_array_init(xl_value_array* array);
+void xl_value_array_write(xl_value_array* array, xl_value value);
+void xl_value_array_free(xl_value_array* array);
 void xl_value_print(xl_value value);
 
 #endif
