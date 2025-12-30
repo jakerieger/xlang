@@ -34,14 +34,23 @@ inline static char* xl_exit_code_to_str(int code) {
     }
 }
 
-inline static void xl_error(int code, const char* fmt, ...) {
+inline static void xl_panic(int code, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    printf(COLOR_BOLD COLOR_RED "error: " COLOR_RESET COLOR_RED);
+    printf(COLOR_BOLD COLOR_RED "(panicked) " COLOR_RESET);
     vprintf(fmt, args);
-    printf("\nexited with code %d (%s)\n" COLOR_RESET, code, xl_exit_code_to_str(code));
+    printf("\nexited with code %d (%s)\n", code, xl_exit_code_to_str(code));
     va_end(args);
     exit(code);
+}
+
+inline static void xl_runtime_error(const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    printf(COLOR_BOLD COLOR_RED "(runtime error) " COLOR_RESET);
+    vprintf(fmt, args);
+    printf("\n");
+    va_end(args);
 }
 
 #endif

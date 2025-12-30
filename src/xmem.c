@@ -24,13 +24,13 @@ void* xl_mem_realloc(void* ptr, size_t old_size, size_t new_size) {
 
     void* result = realloc(ptr, new_size);
     if (result == NULL)
-        xl_error(XL_ERR_ALLOCATION_FAILED, "failed to reallocate memory");
+        xl_panic(XL_ERR_ALLOCATION_FAILED, "failed to reallocate memory");
 
     return result;
 }
 
 void xl_mem_free_objects() {
-    xl_obj* obj = vm.objects;
+    xl_obj* obj = g_vm.objects;
     while (obj != NULL) {
         xl_obj* next = obj->next;
         xl_mem_free_object(obj);

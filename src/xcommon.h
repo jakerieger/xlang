@@ -79,6 +79,8 @@ static inline void xl_cleanup_free(void* p) {
 #define XL_GB(n) ((u64)(n) << 30)
 #define XL_PAGESIZE (sizeof(void*))
 
+#define XL_STRBUF_SIZE 1024
+
 #include "xerr.h"
 
 #endif

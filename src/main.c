@@ -15,7 +15,7 @@ static void repl() {
     char line[MAX_LINE_SIZE];
 
     for (;;) {
-        printf("❯ ");
+        printf("> ");
         if (!fgets(line, MAX_LINE_SIZE, stdin)) {
             printf("\n");
             break;
@@ -28,9 +28,7 @@ static void repl() {
         xl_exec_result exec_result = xl_vm_exec(line);
         if (exec_result != EXEC_OK) {
             if (exec_result == EXEC_COMPILE_ERROR) {
-                xl_error(XL_ERR_EXEC_COMPILE, "failed to compile input");
-            } else if (exec_result == EXEC_RUNTIME_ERROR) {
-                xl_error(XL_ERR_EXEC_RUNTIME, "an error occurred during execution");
+                xl_panic(XL_ERR_EXEC_COMPILE, "failed to compile input");
             }
         }
     }
@@ -81,9 +79,7 @@ static int execute_file(const char* filename) {
 
     if (exec_result != EXEC_OK) {
         if (exec_result == EXEC_COMPILE_ERROR) {
-            xl_error(XL_ERR_EXEC_COMPILE, "failed to compile input");
-        } else if (exec_result == EXEC_RUNTIME_ERROR) {
-            xl_error(XL_ERR_EXEC_RUNTIME, "an error occurred during execution");
+            xl_panic(XL_ERR_EXEC_COMPILE, "failed to compile input");
         }
     }
 

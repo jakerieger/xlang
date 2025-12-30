@@ -111,7 +111,7 @@ static void emit_return() {
 static u8 make_constant(xl_value value) {
     const i32 constant = xl_chunk_add_constant(current_chunk(), value);
     if (constant > UINT8_MAX) {
-        xl_error(XL_ERR_OVER_CAPACITY, "too many constants in one chunk (maximum is 256");
+        xl_panic(XL_ERR_OVER_CAPACITY, "too many constants in one chunk (maximum is 256");
     }
 
     return (u8)constant;
@@ -275,7 +275,7 @@ static void parse_precedence(xl_op_prec prec) {
 
     xl_parse_fn prefix_rule = get_rule(parser.previous.type)->prefix;
     if (!prefix_rule) {
-        xl_error(XL_ERR_EXPECTED_EXPRESSION,
+        xl_panic(XL_ERR_EXPECTED_EXPRESSION,
                  "[line %d] at '%.*s' - expected expression",
                  parser.previous.line,
                  parser.previous.length,

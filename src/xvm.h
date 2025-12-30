@@ -25,7 +25,7 @@ typedef enum {
     EXEC_RUNTIME_ERROR,
 } xl_exec_result;
 
-extern xl_vm vm;
+extern xl_vm g_vm;
 
 void xl_vm_init(xl_vm_config config);
 void xl_vm_shutdown();
