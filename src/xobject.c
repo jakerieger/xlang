@@ -7,7 +7,7 @@
 
 #define ALLOCATE_OBJ(type, obj_type) (type*)allocate_obj(sizeof(type), obj_type);
 
-static bool xl_obj_is_type(xl_value value, xl_obj_type type) {
+bool xl_obj_is_type(xl_value value, xl_obj_type type) {
     return VAL_IS_OBJ(value) && VAL_AS_OBJ(value)->type == type;
 }
 

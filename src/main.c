@@ -71,13 +71,13 @@ static void print_vm_config(const xl_vm_config* config) {
 }
 
 static int execute_file(const char* filename) {
-    char* input = xl_read_file(filename);
-    if (!input) {
+    char* source = xl_read_file(filename);
+    if (!source) {
         return XL_FAIL;
     }
 
-    xl_exec_result exec_result = xl_vm_exec(input);
-    free(input);
+    xl_exec_result exec_result = xl_vm_exec(source);
+    free(source);
 
     if (exec_result != EXEC_OK) {
         if (exec_result == EXEC_COMPILE_ERROR) {
@@ -121,15 +121,7 @@ int main(int argc, char* argv[]) {
         return XL_OK;
     }
 
-    // int result = execute_file(input);
-
-    char* source = xl_read_file(input_file);
-    xl_scanner_init(source);
-    xl_token curr = xl_scanner_emit();
-    while (curr.type != TOKEN_EOF && curr.type != TOKEN_ERROR) {
-        xl_token_print(&curr);
-        curr = xl_scanner_emit();
-    }
+    int result = execute_file(input_file);
 
     xl_vm_shutdown();
 

@@ -24,7 +24,7 @@ struct xl_obj_string {
 #define OBJ_AS_STRING(v) ((xl_obj_string*)VAL_AS_OBJ(v))
 #define OBJ_AS_CSTRING(v) (((xl_obj_string*)VAL_AS_OBJ(v))->str)
 
-static bool xl_obj_is_type(xl_value value, xl_obj_type type);
+bool xl_obj_is_type(xl_value value, xl_obj_type type);
 void xl_obj_print(xl_value value);
 xl_obj_string* xl_obj_str_take(char* chars, i32 length);
 xl_obj_string* xl_obj_str_copy(const char* chars, i32 length);

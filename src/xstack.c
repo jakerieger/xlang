@@ -4,6 +4,7 @@ void xl_stack_init(xl_allocator* alloc, xl_stack* stack, size_t size) {
     stack->count = 0;
     stack->cap   = size;
     stack->stack = XL_ALLOC_ARRAY(alloc, xl_value, size);
+    stack->top   = stack->stack;
 }
 
 i32 xl_stack_push(xl_stack* stack, xl_value value) {

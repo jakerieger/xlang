@@ -1,11 +1,13 @@
 #include "xvm.h"
 #include "xalloc.h"
 #include "xchunk.h"
+#include "xcommon.h"
 #include "xmem.h"
 #include "xcompiler.h"
 #include "xobject.h"
 #include "xstack.h"
 #include "xtable.h"
+#include "xutils.h"
 #include "xvalue.h"
 
 /*
@@ -65,40 +67,113 @@ static void runtime_error(const char* fmt, ...) {
 #define BINARY_OP(value_type, op)                                                                                      \
     do {                                                                                                               \
         if (!VAL_IS_NUMBER(peek(0)) || !VAL_IS_NUMBER(peek(1))) {                                                      \
-            runtime_error("Operands must be numbers.");                                                                \
+            runtime_error("operands must be numbers.");                                                                \
             return EXEC_RUNTIME_ERROR;                                                                                 \
         }                                                                                                              \
         f64 b = VAL_AS_NUMBER(xl_stack_pop(&vm.stack));                                                                \
         f64 a = VAL_AS_NUMBER(xl_stack_pop(&vm.stack));                                                                \
         xl_stack_push(&vm.stack, value_type(a op b));                                                                  \
-    } while (false)
+    } while (XL_FALSE)
 
 //====================================================================================================================//
 
 static xl_exec_result run() {
-    u8 instruction;
-    switch (instruction = READ_BYTE()) {
-        case OP_RETURN:
-        case OP_CONSTANT:
-        case OP_NULL:
-        case OP_TRUE:
-        case OP_FALSE:
-        case OP_EQUAL:
-        case OP_GREATER:
-        case OP_LESS:
-        case OP_NEGATE:
-        case OP_NOT:
-        case OP_ADD:
-        case OP_SUBTRACT:
-        case OP_MULTIPLY:
-        case OP_DIVIDE:
-        case OP_MOD:
-        default: {
-            xl_error(XL_ERR_EXEC_RUNTIME, "unknown instruction (%n)", (i32)instruction);
+    for (;;) {
+        u8 instruction;
+        switch (instruction = READ_BYTE()) {
+            case OP_RETURN: {
+                xl_value_print(xl_stack_pop(&vm.stack));
+                printf("\n");
+                return EXEC_OK;
+            }
+            case OP_CONSTANT: {
+                const xl_value constant = READ_CONSTANT();
+                xl_stack_push(&vm.stack, constant);
+                break;
+            }
+            case OP_NULL: {
+                xl_stack_push(&vm.stack, NULL_VAL);
+                break;
+            }
+            case OP_TRUE: {
+                xl_stack_push(&vm.stack, BOOL_VAL(XL_TRUE));
+                break;
+            }
+            case OP_FALSE: {
+                xl_stack_push(&vm.stack, BOOL_VAL(XL_FALSE));
+                break;
+            }
+            case OP_EQUAL: {
+                xl_value b = xl_stack_pop(&vm.stack);
+                xl_value a = xl_stack_pop(&vm.stack);
+                xl_stack_push(&vm.stack, BOOL_VAL(xl_value_equal(a, b)));
+                break;
+            }
+            case OP_GREATER: {
+                BINARY_OP(BOOL_VAL, >);
+                break;
+            }
+            case OP_LESS: {
+                printf("Called run()\n");
+                BINARY_OP(BOOL_VAL, <);
+                break;
+            }
+            case OP_NEGATE: {
+                if (!VAL_IS_NUMBER(peek(0))) {
+                    runtime_error("operand must be a number");
+                    return EXEC_RUNTIME_ERROR;
+                }
+                // modify in place
+                (vm.stack.top - 1)->as.number = -((vm.stack.top - 1)->as.number);
+                break;
+            }
+            case OP_NOT: {
+                xl_stack_push(&vm.stack, BOOL_VAL(is_falsy(xl_stack_pop(&vm.stack))));
+                break;
+            }
+            case OP_ADD: {
+                if (OBJ_IS_STRING(peek(0)) && OBJ_IS_STRING(peek(1))) {
+                    concatenate();
+                } else if (VAL_IS_NUMBER(peek(0)) && VAL_IS_NUMBER(peek(1))) {
+                    const f64 b = VAL_AS_NUMBER(xl_stack_pop(&vm.stack));
+                    const f64 a = VAL_AS_NUMBER(xl_stack_pop(&vm.stack));
+                    xl_stack_push(&vm.stack, NUMBER_VAL(a + b));
+                } else {
+                    runtime_error("operands must be of matching types");
+                    return EXEC_RUNTIME_ERROR;
+                }
+
+                break;
+            }
+            case OP_SUBTRACT: {
+                BINARY_OP(NUMBER_VAL, -);
+                break;
+            }
+            case OP_MULTIPLY: {
+                BINARY_OP(NUMBER_VAL, *);
+                break;
+            }
+            case OP_DIVIDE: {
+                BINARY_OP(NUMBER_VAL, /);
+                break;
+            }
+            case OP_MOD: {
+                if (!VAL_IS_NUMBER(peek(0)) || !VAL_IS_NUMBER(peek(1))) {
+                    runtime_error("operands must be numbers");
+                    return EXEC_RUNTIME_ERROR;
+                }
+
+                f64 b = VAL_AS_NUMBER(xl_stack_pop(&vm.stack));
+                f64 a = VAL_AS_NUMBER(xl_stack_pop(&vm.stack));
+                xl_stack_push(&vm.stack, NUMBER_VAL(fmod(a, b)));
+
+                break;
+            }
+            default: {
+                xl_error(XL_ERR_EXEC_RUNTIME, "unknown instruction (%n)", (i32)instruction);
+            }
         }
     }
-
-    return EXEC_OK;
 }
 
 //====================================================================================================================//

@@ -4,6 +4,9 @@
 #include "xcommon.h"
 #include "xalloc.h"
 
+#include <math.h>
+#include <float.h>
+
 /// @brief Reads a given file to a string buffer
 inline static char* xl_read_file(const char* filename) {
     FILE* fp = fopen(filename, "r");
@@ -65,6 +68,34 @@ inline static u32 xl_hash_string(const char* key, i32 length) {
     }
 
     return hash;
+}
+
+/// @brief Basic modulus calculation for doubles
+inline static double xl_mod_f64(double x, double y) {
+    if (y == 0.0)
+        return NAN;
+    if (isinf(x) || isnan(x) || isnan(y))
+        return NAN;
+    if (isinf(y))
+        return x;
+
+    int sign = (x < 0.0) ? -1 : 1;
+    x        = fabs(x);
+    y        = fabs(y);
+
+    while (x >= y) {
+        double temp     = y;
+        double multiple = 1.0;
+
+        while (x >= temp + temp && temp < DBL_MAX / 2.0) {
+            temp += temp;
+            multiple += multiple;
+        }
+
+        x -= temp;
+    }
+
+    return sign * x;
 }
 
 #endif

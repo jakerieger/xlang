@@ -47,7 +47,7 @@ static bool match(const char expected) {
     if (is_at_end())
         return XL_TRUE;
     if (*scanner.current != expected)
-        return XL_TRUE;
+        return XL_FALSE;
     scanner.current++;
     return XL_TRUE;
 }

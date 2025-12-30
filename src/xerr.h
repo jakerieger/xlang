@@ -13,15 +13,34 @@
 #define XL_ERR_EXEC_COMPILE 103
 #define XL_ERR_EXEC_RUNTIME 104
 #define XL_ERR_OPEN_FILE 105
+#define XL_ERR_EXPECTED_EXPRESSION 106
+
+inline static char* xl_exit_code_to_str(int code) {
+    switch (code) {
+        case XL_ERR_ALLOCATION_FAILED:
+            return "XL_ERR_ALLOCATION_FAILED";
+        case XL_ERR_OVER_CAPACITY:
+            return "XL_ERR_OVER_CAPACITY";
+        case XL_ERR_EXEC_COMPILE:
+            return "XL_ERR_EXEC_COMPILE";
+        case XL_ERR_EXEC_RUNTIME:
+            return "XL_ERR_EXEC_RUNTIME";
+        case XL_ERR_OPEN_FILE:
+            return "XL_ERR_OPEN_FILE";
+        case XL_ERR_EXPECTED_EXPRESSION:
+            return "XL_ERR_EXPECTED_EXPRESSION";
+        default:
+            return "UNKNOWN_ERROR";
+    }
+}
 
 inline static void xl_error(int code, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    printf(COLOR_BOLD COLOR_RED "error: " COLOR_RESET COLOR_RED "\nexited with code: %d\n", code);
+    printf(COLOR_BOLD COLOR_RED "error: " COLOR_RESET COLOR_RED);
     vprintf(fmt, args);
-    printf(COLOR_RESET "\n");
+    printf("\nexited with code %d (%s)\n" COLOR_RESET, code, xl_exit_code_to_str(code));
     va_end(args);
-
     exit(code);
 }
 
